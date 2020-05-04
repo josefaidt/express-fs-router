@@ -72,7 +72,7 @@ export default function FSRouter(directory, options = {}) {
   this.init = function() {
     const router = express.Router()
     // const project = path.resolve(APP_ROOT, directory.replace(/^\.\//g, ''))
-    const project = path.resolve(directory.replace(/^\.\//g, ''))
+    const project = path.resolve(directory)
     getFileRoutes({ directory: project }).then(files => {
       for (const [path, handler] of files.entries()) {
         const route = `/${path === 'index' ? '' : path}`
