@@ -56,7 +56,7 @@ const defaultHandler = (req, res) =>
  * @param {Array} options.methods - specify allowed global methods
  *
  */
-export default function FSRouter(directory, options = {}) {
+export default function FSRouter(directory = 'api', options = {}) {
   if (!directory) throw new Error(`Unable to create FileSystem Router from directory: ${directory}`)
   this.global = {
     methods: options?.methods?.map(m => m.toLowerCase()) || [
