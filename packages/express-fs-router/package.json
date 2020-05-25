@@ -6,6 +6,9 @@
   "module": "dist/index.esm.js",
   "homepage": "https://github.com/josefaidt/express-fs-router",
   "repository": "https://github.com/josefaidt/express-fs-router",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "microbundle build --target node",
     "dev": "microbundle watch --target node",
