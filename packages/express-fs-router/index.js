@@ -75,7 +75,7 @@ export default function FSRouter(directory = 'api', options = {}) {
     const project = path.resolve(directory)
     getFileRoutes({ directory: project }).then(files => {
       for (const [path, handler] of files.entries()) {
-        const route = `/${path === 'index' ? '' : path}`
+        const route = `/${path.replace(/\/index$/g, '')}`
         switch (typeof handler) {
           case 'function': {
             // verify globally supported methods support handler name (HTTP Method)
