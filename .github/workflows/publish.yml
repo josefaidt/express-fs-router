@@ -12,7 +12,7 @@ jobs:
       with:
         node-version: '12.x'
         registry-url: 'https://registry.npmjs.org'
-    - run: yarn && cd packages/express-fs-router
-    - run: yarn publish
+    - run: yarn
+    - run: yarn workspace express-fs-router publish
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
