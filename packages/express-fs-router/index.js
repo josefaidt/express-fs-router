@@ -51,7 +51,7 @@ const defaultHandler = (req, res) =>
  * FileSystem Router for Express
  * @constructor
  * @name FSRouter
- * @param {string} directory - relative path to pull routes from
+ * @param {string} [directory] - relative path to pull routes from
  * @param {Object} options - options to customize FSRouter
  * @param {Array} options.methods - specify allowed global methods
  *
@@ -69,29 +69,112 @@ export default function FSRouter(directory = 'api', options = {}) {
       'all',
     ],
   }
+
   this.init = function() {
     const router = express.Router()
-    // const project = path.resolve(APP_ROOT, directory.replace(/^\.\//g, ''))
     const project = path.resolve(directory)
     getFileRoutes({ directory: project }).then(files => {
       for (const [path, handler] of files.entries()) {
-        const route = `/${path === 'index' ? '' : path}`
-        if (typeof handler === 'function') {
-          if (this.global.methods.includes(handler.name?.toLowerCase())) {
-            router[handler.name](route, handler)
-          } else {
-            if (this.global.methods.includes('all')) router.all(route, handler)
-            else {
-              for (const method in this.global.methods) {
-                router[method](route, handler)
+        // set method var holder, will be null if path does not match regex
+        let method = path
+          .match(/:(get|post|put|patch|options|all)$/g)
+          ?.shift()
+          .replace(/^:/, '')
+          .toLowerCase()
+        const route = `/${path
+          .replace(/\/index$/g, '')
+          .replace(/\/:(get|post|put|patch|options|all)$/g, '')}`
+
+        // check to make sure route does not already exist
+        if (router.stack.some(layer => layer.route.path === route)) {
+          const existing = router.stack.find(layer => layer.route.path === route)
+          if (!method && (!handler?.name || handler?.name === 'all')) {
+            // ensure an anonymous function with similar naming does not trump file-based methods (i.e. /methods/:get.js vs /methods.js)
+            console.warn(
+              `Duplicate entry detected: ${route} with implied method ALL. Consider deleting ${directory}/${path}.js. Skipping...`
+            )
+            continue
+          } else if (!method && Object.keys(existing.route.methods).length) {
+            // don't allow users to add top-level `methods.js` with handler name of `put` and add to route with existing records'
+            console.warn(
+              `Duplicate entry detected: ${route} where file-system methods routes are enabled. Consider deleting ${directory}/${path}.js. Skipping...`
+            )
+            continue
+          } else if (Object.keys(existing.route.methods).includes(method || handler?.name)) {
+            // warn user of duplicate entries for same route and method
+            console.warn(
+              `Duplicate entry detected: ${route} with method ${method ||
+                handler?.name}. Consider deleting ${directory}/${path}.js. Skipping...`
+            )
+            continue
+          }
+        }
+
+        switch (typeof handler) {
+          case 'function': {
+            // verify globally supported methods support handler name (HTTP Method)
+            if (this.global.methods.includes(handler.name?.toLowerCase())) {
+              // set method if not already defined
+              if (!method) method = handler.name
+              // apply handler via name -- function get() {}
+              router[method](route, handler)
+              this._added.push({
+                route,
+                method,
+                handler,
+              })
+            } else {
+              // check if method exists before proceeding
+              if (method) router[method](route, handler)
+              else {
+                // fallback to ALL if present in globally supported methods
+                if (this.global.methods.includes('all')) router.all(route, handler)
+                else {
+                  // if 'all' does not exist, use every other defined method
+                  for (const method in this.global.methods) {
+                    router[method](route, handler)
+                    this._added.push({
+                      route,
+                      method,
+                      handler,
+                    })
+                  }
+                }
               }
             }
+            break
           }
-        } else {
-          console.warn(
-            `[FS-ROUTER] Warning! Route "${path}" does not export a function, applying default handler`
-          )
-          router.all(route, defaultHandler)
+          case 'object': {
+            // check if array
+            if (Array.isArray(handler) && handler.length) {
+              // verify each item in array is of type Function
+              for (const fn of handler) {
+                if (typeof fn !== 'function')
+                  throw new Error(`Unable to apply exported middleware for route "${path}"`)
+              }
+
+              if (!method) method = handler[handler.length - 1].name
+              // verify last item in the array (the actual handler)'s name is supported
+              if (this.global.methods.includes(method)) {
+                router[method](route, ...handler)
+              } else {
+                router.all(route, ...handler)
+              }
+            } else {
+              console.warn(
+                `[FS-ROUTER] Warning! Route "${path}" was expected to export a Function or Array, applying default handler`
+              )
+              router.all(route, defaultHandler)
+            }
+            break
+          }
+          default: {
+            console.warn(
+              `[FS-ROUTER] Warning! Route "${path}" does not export a Function, applying default handler`
+            )
+            router.all(route, defaultHandler)
+            break
+          }
         }
       }
     })

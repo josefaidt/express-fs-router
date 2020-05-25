@@ -34,6 +34,8 @@ app.listen(3000, () => console.log('Listening at http://localhost:3000'))
 
 ## Features
 
+### HTTP Methods & Named Function Default Exports
+
 To specify a supported method on a route add a named function default export:
 
 ```js
@@ -55,8 +57,25 @@ export default function post(req, res) {
 By default anonymous functions or named functions that are not one of the supported request methods are assumed to support ALL methods. In short, said functions are added to the Express router as:
 
 ```js
-// express-fs-router/index.js
 router.all(route, handler)
+```
+
+### Middleware
+
+To apply middleware to the route's handler, export an array of functions in the order of execution:
+
+```js
+// api/middleware.js
+function myMiddleware(req, res, next) {
+  console.log('LOGGED FROM MYMIDDLEWARE')
+  next()
+}
+
+function get(req, res) {
+  res.json({ message: 'yay middleware!' })
+}
+
+export default [myMiddleware, get]
 ```
 
 ### Specifying Globally Supported Request Methods
