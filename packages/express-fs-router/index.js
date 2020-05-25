@@ -51,7 +51,7 @@ const defaultHandler = (req, res) =>
  * FileSystem Router for Express
  * @constructor
  * @name FSRouter
- * @param {string} directory - relative path to pull routes from
+ * @param {string} [directory] - relative path to pull routes from
  * @param {Object} options - options to customize FSRouter
  * @param {Array} options.methods - specify allowed global methods
  *
@@ -76,23 +76,72 @@ export default function FSRouter(directory = 'api', options = {}) {
     getFileRoutes({ directory: project }).then(files => {
       for (const [path, handler] of files.entries()) {
         const route = `/${path === 'index' ? '' : path}`
-        if (typeof handler === 'function') {
-          if (this.global.methods.includes(handler.name?.toLowerCase())) {
-            router[handler.name](route, handler)
-          } else {
-            if (this.global.methods.includes('all')) router.all(route, handler)
-            else {
-              for (const method in this.global.methods) {
-                router[method](route, handler)
+        switch (typeof handler) {
+          case 'function': {
+            // verify globally supported methods support handler name (HTTP Method)
+            if (this.global.methods.includes(handler.name?.toLowerCase())) {
+              // apply handler via name -- function get() {}
+              router[handler.name](route, handler)
+            } else {
+              // fallback to ALL if present in globally supported methods
+              if (this.global.methods.includes('all')) router.all(route, handler)
+              else {
+                // if 'all' does not exist, use every other defined method
+                for (const method in this.global.methods) {
+                  router[method](route, handler)
+                }
               }
             }
+            break
           }
-        } else {
-          console.warn(
-            `[FS-ROUTER] Warning! Route "${path}" does not export a function, applying default handler`
-          )
-          router.all(route, defaultHandler)
+          case 'object': {
+            // check if array
+            if (Array.isArray(handler) && handler.length) {
+              // verify each item in array is of type Function
+              for (const fn of handler) {
+                if (typeof fn !== 'function')
+                  throw new Error(`Unable to apply exported middleware for route "${path}"`)
+              }
+              const method = handler[handler.length - 1].name
+              // verify last item in the array (the actual handler)'s name is supported
+              if (this.global.methods.includes(method)) {
+                router[method](route, ...handler)
+              } else {
+                router.all(route, ...handler)
+              }
+            } else {
+              console.warn(
+                `[FS-ROUTER] Warning! Route "${path}" was expected to export an Array, applying default handler`
+              )
+              router.all(route, defaultHandler)
+            }
+            break
+          }
+          default: {
+            console.warn(
+              `[FS-ROUTER] Warning! Route "${path}" does not export a Function, applying default handler`
+            )
+            router.all(route, defaultHandler)
+            break
+          }
         }
+        // if (typeof handler === 'function') {
+        //   if (this.global.methods.includes(handler.name?.toLowerCase())) {
+        //     router[handler.name](route, handler)
+        //   } else {
+        //     if (this.global.methods.includes('all')) router.all(route, handler)
+        //     else {
+        //       for (const method in this.global.methods) {
+        //         router[method](route, handler)
+        //       }
+        //     }
+        //   }
+        // } else {
+        //   console.warn(
+        //     `[FS-ROUTER] Warning! Route "${path}" does not export a function, applying default handler`
+        //   )
+        //   router.all(route, defaultHandler)
+        // }
       }
     })
     return router
