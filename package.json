@@ -1,26 +1,13 @@
 {
-  "name": "express-fs-router",
-  "version": "0.1.1",
-  "source": "index.js",
-  "main": "dist/index.js",
-  "module": "dist/index.esm.js",
-  "homepage": "https://github.com/josefaidt/express-fs-router",
-  "repository": "https://github.com/josefaidt/express-fs-router",
-  "scripts": {
-    "build": "microbundle build --target node",
-    "dev": "microbundle watch --target node",
-    "prepublish": "yarn build"
-  },
+  "private": true,
+  "workspaces": ["packages/*"],
+  "author": "josefaidt <josef.aidt@gmail.com>",
+  "license": "MIT",
   "devDependencies": {
     "@josefaidt/eslint-config": "^0.1.14",
     "eslint": "^6.8.0",
-    "express": "^4.17.1",
     "husky": "^4.2.5",
-    "lint-staged": "^10.1.7",
-    "microbundle": "^0.12.0-next.8"
-  },
-  "peerDependencies": {
-    "express": "^4.17.1"
+    "lint-staged": "^10.1.7"
   },
   "eslintConfig": {
     "extends": "@josefaidt/eslint-config",
@@ -43,6 +30,5 @@
       "prettier --write",
       "git add"
     ]
-  },
-  "license": "MIT"
+  }
 }

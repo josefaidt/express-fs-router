@@ -1,0 +1,16 @@
+{
+  "name": "example",
+  "version": "0.1.1",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "express-fs-router": "*"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.4"
+  }
+}

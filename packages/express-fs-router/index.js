@@ -7,8 +7,8 @@ import express from 'express'
  * @name GetFileRoutes
  * @param {Object} - default single object argument
  * @param {string} directory - path for directory to traverse
- * @param {regex} ignore - ignore file path regex
- * @param {regex} include - default file extension to include
+ * @param {regex} [ignore] - ignore file path regex
+ * @param {regex} [include] - default file extension to include
  * @returns {map} Map of full path to file and default export (handler)
  *
  */
