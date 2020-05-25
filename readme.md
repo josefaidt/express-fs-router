@@ -78,6 +78,17 @@ function get(req, res) {
 export default [myMiddleware, get]
 ```
 
+### Methods Routing
+
+This package allows defining multiple supported HTTP methods per route with file-system methods routing:
+
+```text
+|- api/
+  |- methods/
+    |- :get.js
+    |- :post.js
+```
+
 ### Specifying Globally Supported Request Methods
 
 FSRouter accepts an `options` argument:

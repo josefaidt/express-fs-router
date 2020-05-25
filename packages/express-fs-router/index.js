@@ -91,19 +91,19 @@ export default function FSRouter(directory = 'api', options = {}) {
           if (!method && (!handler?.name || handler?.name === 'all')) {
             // ensure an anonymous function with similar naming does not trump file-based methods (i.e. /methods/:get.js vs /methods.js)
             console.warn(
-              `Duplicate entry detected: ${route} with implied method ALL. Consider deleting ${directory}/${path}.js. Skipping...`
+              `[FS-ROUTER] Duplicate entry detected: ${route} with implied method ALL. Consider deleting ${directory}/${path}.js. Skipping...`
             )
             continue
           } else if (!method && Object.keys(existing.route.methods).length) {
             // don't allow users to add top-level `methods.js` with handler name of `put` and add to route with existing records'
             console.warn(
-              `Duplicate entry detected: ${route} where file-system methods routes are enabled. Consider deleting ${directory}/${path}.js. Skipping...`
+              `[FS-ROUTER] Duplicate entry detected: ${route} where file-system methods routes are enabled. Consider deleting ${directory}/${path}.js. Skipping...`
             )
             continue
           } else if (Object.keys(existing.route.methods).includes(method || handler?.name)) {
             // warn user of duplicate entries for same route and method
             console.warn(
-              `Duplicate entry detected: ${route} with method ${method ||
+              `[FS-ROUTER] Duplicate entry detected: ${route} with method ${method ||
                 handler?.name}. Consider deleting ${directory}/${path}.js. Skipping...`
             )
             continue
@@ -150,7 +150,9 @@ export default function FSRouter(directory = 'api', options = {}) {
               // verify each item in array is of type Function
               for (const fn of handler) {
                 if (typeof fn !== 'function')
-                  throw new Error(`Unable to apply exported middleware for route "${path}"`)
+                  throw new Error(
+                    `[FS-ROUTER] Unable to apply exported middleware for route "${path}"`
+                  )
               }
 
               if (!method) method = handler[handler.length - 1].name
