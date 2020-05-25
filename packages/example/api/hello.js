@@ -1,3 +1,10 @@
+/**
+ * Say hello
+ *
+ * @name Hello
+ * @path {POST} /hello
+ * @body {String} name - Name of user
+ */
 module.exports = function post(req, res) {
   if (req.body && req.body.name) {
     res.status(200).json({ message: `Hello, ${req.body.name}` })
