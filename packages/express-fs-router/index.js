@@ -71,24 +71,37 @@ export default function FSRouter(directory = 'api', options = {}) {
   }
   this.init = function() {
     const router = express.Router()
-    // const project = path.resolve(APP_ROOT, directory.replace(/^\.\//g, ''))
     const project = path.resolve(directory)
     getFileRoutes({ directory: project }).then(files => {
       for (const [path, handler] of files.entries()) {
-        const route = `/${path.replace(/\/index$/g, '')}`
+        // set method var holder, will be null if path does not match regex
+        let method = path
+          .match(/:(get|post|put|patch|options|all)$/g)
+          ?.shift()
+          .replace(/^:/, '')
+          .toLowerCase()
+        const route = `/${path
+          .replace(/\/index$/g, '')
+          .replace(/\/:(get|post|put|patch|options|all)$/g, '')}`
         switch (typeof handler) {
           case 'function': {
             // verify globally supported methods support handler name (HTTP Method)
             if (this.global.methods.includes(handler.name?.toLowerCase())) {
+              // set method if not already defined
+              if (!method) method = handler.name
               // apply handler via name -- function get() {}
-              router[handler.name](route, handler)
+              router[method](route, handler)
             } else {
-              // fallback to ALL if present in globally supported methods
-              if (this.global.methods.includes('all')) router.all(route, handler)
+              // check if method exists before proceeding
+              if (method) router[method](route, handler)
               else {
-                // if 'all' does not exist, use every other defined method
-                for (const method in this.global.methods) {
-                  router[method](route, handler)
+                // fallback to ALL if present in globally supported methods
+                if (this.global.methods.includes('all')) router.all(route, handler)
+                else {
+                  // if 'all' does not exist, use every other defined method
+                  for (const method in this.global.methods) {
+                    router[method](route, handler)
+                  }
                 }
               }
             }
@@ -102,7 +115,8 @@ export default function FSRouter(directory = 'api', options = {}) {
                 if (typeof fn !== 'function')
                   throw new Error(`Unable to apply exported middleware for route "${path}"`)
               }
-              const method = handler[handler.length - 1].name
+
+              if (!method) method = handler[handler.length - 1].name
               // verify last item in the array (the actual handler)'s name is supported
               if (this.global.methods.includes(method)) {
                 router[method](route, ...handler)
