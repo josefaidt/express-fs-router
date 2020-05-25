@@ -69,6 +69,7 @@ export default function FSRouter(directory = 'api', options = {}) {
       'all',
     ],
   }
+
   this.init = function() {
     const router = express.Router()
     const project = path.resolve(directory)
@@ -83,6 +84,32 @@ export default function FSRouter(directory = 'api', options = {}) {
         const route = `/${path
           .replace(/\/index$/g, '')
           .replace(/\/:(get|post|put|patch|options|all)$/g, '')}`
+
+        // check to make sure route does not already exist
+        if (router.stack.some(layer => layer.route.path === route)) {
+          const existing = router.stack.find(layer => layer.route.path === route)
+          if (!method && (!handler?.name || handler?.name === 'all')) {
+            // ensure an anonymous function with similar naming does not trump file-based methods (i.e. /methods/:get.js vs /methods.js)
+            console.warn(
+              `Duplicate entry detected: ${route} with implied method ALL. Consider deleting ${directory}/${path}.js. Skipping...`
+            )
+            continue
+          } else if (!method && Object.keys(existing.route.methods).length) {
+            // don't allow users to add top-level `methods.js` with handler name of `put` and add to route with existing records'
+            console.warn(
+              `Duplicate entry detected: ${route} where file-system methods routes are enabled. Consider deleting ${directory}/${path}.js. Skipping...`
+            )
+            continue
+          } else if (Object.keys(existing.route.methods).includes(method || handler?.name)) {
+            // warn user of duplicate entries for same route and method
+            console.warn(
+              `Duplicate entry detected: ${route} with method ${method ||
+                handler?.name}. Consider deleting ${directory}/${path}.js. Skipping...`
+            )
+            continue
+          }
+        }
+
         switch (typeof handler) {
           case 'function': {
             // verify globally supported methods support handler name (HTTP Method)
@@ -91,6 +118,11 @@ export default function FSRouter(directory = 'api', options = {}) {
               if (!method) method = handler.name
               // apply handler via name -- function get() {}
               router[method](route, handler)
+              this._added.push({
+                route,
+                method,
+                handler,
+              })
             } else {
               // check if method exists before proceeding
               if (method) router[method](route, handler)
@@ -101,6 +133,11 @@ export default function FSRouter(directory = 'api', options = {}) {
                   // if 'all' does not exist, use every other defined method
                   for (const method in this.global.methods) {
                     router[method](route, handler)
+                    this._added.push({
+                      route,
+                      method,
+                      handler,
+                    })
                   }
                 }
               }
@@ -125,7 +162,7 @@ export default function FSRouter(directory = 'api', options = {}) {
               }
             } else {
               console.warn(
-                `[FS-ROUTER] Warning! Route "${path}" was expected to export an Array, applying default handler`
+                `[FS-ROUTER] Warning! Route "${path}" was expected to export a Function or Array, applying default handler`
               )
               router.all(route, defaultHandler)
             }
@@ -139,23 +176,6 @@ export default function FSRouter(directory = 'api', options = {}) {
             break
           }
         }
-        // if (typeof handler === 'function') {
-        //   if (this.global.methods.includes(handler.name?.toLowerCase())) {
-        //     router[handler.name](route, handler)
-        //   } else {
-        //     if (this.global.methods.includes('all')) router.all(route, handler)
-        //     else {
-        //       for (const method in this.global.methods) {
-        //         router[method](route, handler)
-        //       }
-        //     }
-        //   }
-        // } else {
-        //   console.warn(
-        //     `[FS-ROUTER] Warning! Route "${path}" does not export a function, applying default handler`
-        //   )
-        //   router.all(route, defaultHandler)
-        // }
       }
     })
     return router
