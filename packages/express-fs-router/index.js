@@ -118,11 +118,6 @@ export default function FSRouter(directory = 'api', options = {}) {
               if (!method) method = handler.name
               // apply handler via name -- function get() {}
               router[method](route, handler)
-              this._added.push({
-                route,
-                method,
-                handler,
-              })
             } else {
               // check if method exists before proceeding
               if (method) router[method](route, handler)
@@ -133,11 +128,6 @@ export default function FSRouter(directory = 'api', options = {}) {
                   // if 'all' does not exist, use every other defined method
                   for (const method in this.global.methods) {
                     router[method](route, handler)
-                    this._added.push({
-                      route,
-                      method,
-                      handler,
-                    })
                   }
                 }
               }
