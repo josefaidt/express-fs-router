@@ -12,7 +12,7 @@ import express from 'express'
  * @returns {map} Map of full path to file and default export (handler)
  *
  */
-const getFileRoutes = async ({ directory, ignore = /_/, include = /\.(js|ts)$/ }) => {
+const getFileRoutes = async ({ directory, ignore = /_/, include = /\.(js|ts|cjs|mjs)$/ }) => {
   const result = new Map()
   const nestedGetFiles = async nestedDirectory => {
     const files = fs.readdirSync(nestedDirectory, { withFileTypes: true })
@@ -30,7 +30,7 @@ const getFileRoutes = async ({ directory, ignore = /_/, include = /\.(js|ts)$/ }
             fPath
               .replace(directory, '')
               .slice(1)
-              .replace(/\.(js|ts)$/, ''),
+              .replace(/\.(js|ts|cjs|mjs)$/, ''),
             mod?.default || mod
           )
         }
