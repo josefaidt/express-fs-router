@@ -12,7 +12,7 @@ import express from 'express'
  * @returns {map} Map of full path to file and default export (handler)
  *
  */
-const getFileRoutes = async ({ directory, ignore = /_/, include = /\.js$/ }) => {
+const getFileRoutes = async ({ directory, ignore = /_/, include = /\.(js|ts)$/ }) => {
   const result = new Map()
   const nestedGetFiles = async nestedDirectory => {
     const files = fs.readdirSync(nestedDirectory, { withFileTypes: true })
@@ -25,11 +25,12 @@ const getFileRoutes = async ({ directory, ignore = /_/, include = /\.js$/ }) => 
         } else if (include.test(f.name)) {
           // eslint-disable-next-line no-await-in-loop
           const mod = await import(fPath)
+          // console.log(path.basename(f))
           result.set(
-            `${nestedDirectory}/${f.name}`
+            fPath
               .replace(directory, '')
               .slice(1)
-              .replace(/\.js$/, ''),
+              .replace(/\.(js|ts)$/, ''),
             mod?.default || mod
           )
         }
@@ -63,7 +64,7 @@ export default function FSRouter(directory = 'api', options = {}) {
       'get',
       'post',
       'put',
-      'delete',
+      'del',
       'patch',
       'options',
       'all',
@@ -77,16 +78,16 @@ export default function FSRouter(directory = 'api', options = {}) {
       for (const [path, handler] of files.entries()) {
         // set method var holder, will be null if path does not match regex
         let method = path
-          .match(/:(get|post|put|patch|options|all)$/g)
+          .match(/:(get|post|put|patch|options|all|del)$/g)
           ?.shift()
           .replace(/^:/, '')
           .toLowerCase()
         const route = `/${path
-          .replace(/\/index$/g, '')
-          .replace(/\/:(get|post|put|patch|options|all)$/g, '')}`
+          .replace(/index$/g, '')
+          .replace(/\/:(get|post|put|patch|options|all|del)$/g, '')}`
 
         // check to make sure route does not already exist
-        if (router.stack.some(layer => layer.route.path === route)) {
+        if (router.stack.some(layer => layer.route.path === route && layer.route.methods[method])) {
           const existing = router.stack.find(layer => layer.route.path === route)
           if (!method && (!handler?.name || handler?.name === 'all')) {
             // ensure an anonymous function with similar naming does not trump file-based methods (i.e. /methods/:get.js vs /methods.js)
@@ -109,6 +110,8 @@ export default function FSRouter(directory = 'api', options = {}) {
             continue
           }
         }
+
+        if (handler.name?.toLowerCase() === 'del') method = 'delete'
 
         switch (typeof handler) {
           case 'function': {
